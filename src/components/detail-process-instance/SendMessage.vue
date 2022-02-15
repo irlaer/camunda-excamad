@@ -3,30 +3,53 @@
     <h3>Send message</h3>
     <b-card id="historyDetails" bg-variant="light" text-variant="dark">
       <b-form inline>
-        <b-form-select
-          v-model="selectedMessage"
-          :options="messageList"
-          class="mb-2 mr-sm-2 mb-sm-0"
-        />
-        <b-button @click="sendMessage" variant="outline-danger">Send</b-button>
-        <br>
+        <b-container fluid="xl">
+          <b-row class="mb-3"> 
+            <b-col>
+              <b-form-select
+             v-model="selectedMessage"
+             :options="messageList"
+             class="mb-2 mr-sm-2 mb-sm-0"
+             @change="messageChanged"/>
+            </b-col>
+	        </b-row>
+          <b-row class="mb-3">
+            <b-col> 
+              <vue-json-editor v-if="selectedMessage" v-model="messagePayload" :mode="code"
+                         :show-btns="true">
+              </vue-json-editor>
+        
+            </b-col>
+          </b-row>
+          <b-row>
+            <b-col>
+              <b-button @click="sendMessage" variant="outline-danger">Send</b-button>
+            </b-col>
+          </b-row>
+        </b-container>
       </b-form>
     </b-card>
   </div>
 </template>
 
+
 <script>
 import BpmnModdle from "bpmn-moddle";
 import camundaModdle from "camunda-bpmn-moddle/resources/camunda";
+import vueJsonEditor from 'vue-json-editor';
 
 export default {
   name: "SendMessage",
+  components: {
+    vueJsonEditor
+  },
   props: ["processInstanceId", "processDefinitionId"],
   data() {
     return {
       definitionInXml: "",
       selectedMessage: "",
-      messageList: []
+      messageList: [],
+      messagePayload:{"messageName":"MessageName"}      
     };
   },
   computed: {
@@ -102,6 +125,11 @@ export default {
         return [];
       }
     },
+    
+    messageChanged(value){
+      this.messagePayload.messageName = value;
+    }, 
+    
     sendMessage() {
       var sendObj = {
         messageName: this.selectedMessage,
