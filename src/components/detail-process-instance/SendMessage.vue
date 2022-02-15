@@ -4,26 +4,32 @@
     <b-card id="historyDetails" bg-variant="light" text-variant="dark">
       <b-form inline>
         <b-container fluid="xl">
-          <b-row class="mb-3"> 
+          <b-row class="mb-3">
             <b-col>
               <b-form-select
-             v-model="selectedMessage"
-             :options="messageList"
-             class="mb-2 mr-sm-2 mb-sm-0"
-             @change="messageChanged"/>
+                v-model="selectedMessage"
+                :options="messageList"
+                class="mb-2 mr-sm-2 mb-sm-0"
+                @change="messageChanged"
+              />
             </b-col>
-	        </b-row>
+          </b-row>
           <b-row class="mb-3">
-            <b-col> 
-              <vue-json-editor v-if="selectedMessage" v-model="messagePayload" :mode="code"
-                         :show-btns="true">
+            <b-col>
+              <vue-json-editor
+                v-if="selectedMessage"
+                v-model="messagePayload"
+                :mode="code"
+                :show-btns="true"
+              >
               </vue-json-editor>
-        
             </b-col>
           </b-row>
           <b-row>
             <b-col>
-              <b-button @click="sendMessage" variant="outline-danger">Send</b-button>
+              <b-button @click="sendMessage" variant="outline-danger"
+                >Send</b-button
+              >
             </b-col>
           </b-row>
         </b-container>
@@ -36,12 +42,12 @@
 <script>
 import BpmnModdle from "bpmn-moddle";
 import camundaModdle from "camunda-bpmn-moddle/resources/camunda";
-import vueJsonEditor from 'vue-json-editor';
+import vueJsonEditor from "vue-json-editor";
 
 export default {
   name: "SendMessage",
   components: {
-    vueJsonEditor
+    vueJsonEditor,
   },
   props: ["processInstanceId", "processDefinitionId"],
   data() {
@@ -49,7 +55,7 @@ export default {
       definitionInXml: "",
       selectedMessage: "",
       messageList: [],
-      messagePayload:{"messageName":"MessageName"}      
+      messagePayload: { messageName: "MessageName" },
     };
   },
   computed: {
@@ -58,7 +64,7 @@ export default {
     },
     isAuthenticated() {
       return this.$store.getters.isAuthenticated;
-    }
+    },
   },
   mounted() {
     setTimeout(() => {
@@ -69,7 +75,7 @@ export default {
     getMessageList() {
       this.$api()
         .get("/process-definition/" + this.processDefinitionId + "/xml")
-        .then(response => {
+        .then((response) => {
           this.definitionInXml = response.data.bpmn20Xml;
           this.readModel();
         });
@@ -78,26 +84,29 @@ export default {
       var moddle = new BpmnModdle({ camunda: camundaModdle });
       var vm = this;
       vm.activityList = [];
-      this.moddle = moddle.fromXML(this.definitionInXml, function(
-        err,
-        definitions
-      ) {
-        definitions.rootElements.forEach(element => {
-          if (element.$type == "bpmn:Process" && element.isExecutable == true) {
-            addEventsFromElement(element);
-          }
-        });
-      });
+      this.moddle = moddle.fromXML(
+        this.definitionInXml,
+        function (err, definitions) {
+          definitions.rootElements.forEach((element) => {
+            if (
+              element.$type == "bpmn:Process" &&
+              element.isExecutable == true
+            ) {
+              addEventsFromElement(element);
+            }
+          });
+        }
+      );
 
       function addEventsFromElement(flowElement) {
-        flowElement.flowElements.forEach(flowelement => {
+        flowElement.flowElements.forEach((flowelement) => {
           if (flowelement.$type === "bpmn:SubProcess") {
             addEventsFromElement(flowelement);
           }
 
           const newEvents = getAssignedEventsNames(flowelement)
-              .filter(event => !!event)
-              .filter(event => vm.messageList.indexOf(event) === -1);
+            .filter((event) => !!event)
+            .filter((event) => vm.messageList.indexOf(event) === -1);
 
           if (newEvents.length) {
             vm.messageList.push(...newEvents);
@@ -106,56 +115,62 @@ export default {
       }
 
       function getAssignedEventsNames(flowelement) {
-        if (flowelement.$type &&
-            flowelement.messageRef &&
-            flowelement.messageRef.name) {
+        if (
+          flowelement.$type &&
+          flowelement.messageRef &&
+          flowelement.messageRef.name
+        ) {
           return [flowelement.messageRef.name];
         }
 
-        if (flowelement.$type === "bpmn:BoundaryEvent" ||
-            flowelement.$type === "bpmn:StartEvent" ||
-            flowelement.$type === "bpmn:IntermediateCatchEvent") {
-          return flowelement.eventDefinitions
-              && flowelement.eventDefinitions.map(event =>
-              event.messageRef &&
-              event.messageRef.name
-          ) || [];
+        if (
+          flowelement.$type === "bpmn:BoundaryEvent" ||
+          flowelement.$type === "bpmn:StartEvent" ||
+          flowelement.$type === "bpmn:IntermediateCatchEvent"
+        ) {
+          return (
+            (flowelement.eventDefinitions &&
+              flowelement.eventDefinitions.map(
+                (event) => event.messageRef && event.messageRef.name
+              )) ||
+            []
+          );
         }
 
         return [];
       }
     },
-    
-    messageChanged(value){
+
+    messageChanged(value) {
       this.messagePayload.messageName = value;
-    }, 
-    
+    },
+
     sendMessage() {
       var sendObj = {
         messageName: this.selectedMessage,
         processInstanceId: this.processInstanceId,
-        resultEnabled: true
+        resultEnabled: true,
       };
       this.$api()
         .post("/message", sendObj)
-        .then(response => {
+        .then((response) => {
           this.$notify({
             group: "foo",
             title: "Sended!",
             text: "Message" + this.selectedMessage + " sended" + response.data,
-            type: "success"
+            type: "success",
           });
         })
-        .catch(error => {
+        .catch((error) => {
           this.$notify({
             group: "foo",
             title: "Not sended!",
             text: error,
-            type: "error"
+            type: "error",
           });
         });
-    }
-  }
+    },
+  },
 };
 </script>
 
